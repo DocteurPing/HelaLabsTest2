@@ -21,6 +21,7 @@ impl Point {
     }
 
     fn closest_points(&self, points: Vec<Point>) -> Vec<Point> {
+        // Using a binary heap to keep track of the closest points instead of Vec for performance purposes even if it uses more memory.
         let mut heap = BinaryHeap::with_capacity(Self::CLOSEST_POINTS_LIMIT + 1);
 
         for &point in &points {
