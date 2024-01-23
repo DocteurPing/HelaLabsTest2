@@ -72,7 +72,7 @@ impl PartialOrd for DistancePoint {
 }
 
 fn main() {
-    let points: Vec<Point> = (0..10_00).map(|_| Point::random()).collect();
+    let points: Vec<Point> = (0..10_000_000).map(|_| Point::random()).collect();
     let test_point = Point::random();
 
     let start_time = std::time::Instant::now();
