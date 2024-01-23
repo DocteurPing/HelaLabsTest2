@@ -1,7 +1,8 @@
 use rand::Rng;
-use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {
     x: f64,
     y: f64,
@@ -13,22 +14,28 @@ impl Point {
 
     fn new(x: f64, y: f64, z: f64) -> Point {
         Point {
-            x: Point::clamp(x),
-            y: Point::clamp(y),
-            z: Point::clamp(z),
+            x,
+            y,
+            z,
         }
     }
 
     fn closest_points(&self, points: Vec<Point>) -> Vec<Point> {
-        let mut closest_points = points;
-        let limit = closest_points.len().min(Self::CLOSEST_POINTS_LIMIT);
+        let mut heap = BinaryHeap::with_capacity(Self::CLOSEST_POINTS_LIMIT + 1);
 
-        closest_points.select_nth_unstable_by(limit - 1, |a, b| {
-            self.distance_to(*a).partial_cmp(&self.distance_to(*b)).unwrap_or(Ordering::Equal)
-        });
+        for &point in &points {
+            let distance = self.distance_to(point);
+            if heap.len() < Self::CLOSEST_POINTS_LIMIT {
+                heap.push(Reverse(DistancePoint { distance, point }));
+            } else if let Some(mut top) = heap.peek_mut() {
+                if distance < top.0.distance {
+                    top.0.distance = distance;
+                    top.0.point = point;
+                }
+            }
+        }
 
-        closest_points.truncate(limit);
-        closest_points
+        heap.into_iter().map(|Reverse(dp)| dp.point).collect()
     }
 
     fn distance_to(&self, other: Point) -> f64 {
@@ -36,16 +43,36 @@ impl Point {
     }
 
     fn random() -> Point {
-        Point::new(rand::thread_rng().gen_range(0.0..1.0), rand::thread_rng().gen_range(0.0..1.0), rand::thread_rng().gen_range(0.0..1.0))
+        Point::new(
+            rand::thread_rng().gen_range(0.0..1.0),
+            rand::thread_rng().gen_range(0.0..1.0),
+            rand::thread_rng().gen_range(0.0..1.0),
+        )
     }
+}
 
-    fn clamp(coordinate: f64) -> f64 {
-        coordinate.max(0.0).min(1.0)
+#[derive(Debug, PartialEq)]
+struct DistancePoint {
+    distance: f64,
+    point: Point,
+}
+
+impl Eq for DistancePoint {}
+
+impl Ord for DistancePoint {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.distance.partial_cmp(&other.distance).unwrap().reverse()
+    }
+}
+
+impl PartialOrd for DistancePoint {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 fn main() {
-    let points: Vec<Point> = (0..10_000_000).map(|_| Point::random()).collect();
+    let points: Vec<Point> = (0..10_00).map(|_| Point::random()).collect();
     let test_point = Point::random();
 
     let start_time = std::time::Instant::now();
